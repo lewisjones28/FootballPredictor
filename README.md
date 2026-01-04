@@ -57,3 +57,27 @@ By default, the `backend/files/output/` folder is ignored in git (so outputs are
 outputs under version control, remove that path from `.gitignore`.
 
 ---
+
+## Frontend Application
+
+A modern React + TypeScript web interface is available to view predictions in a user-friendly format.
+
+### Features
+- 🌙 Dark, cool-themed interface
+- 🔍 Filter by league and match round
+- 📊 Beautiful match cards with predictions
+- 📅 Match dates, times, and venues
+
+### Quick Start
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Visit `http://localhost:5173` to view predictions.
+
+For more details, see [frontend/README.md](frontend/README.md).
+
+---
+
