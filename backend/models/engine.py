@@ -583,21 +583,33 @@ def _process_iteration_chunk(iteration_range: tuple, worker_data: dict) -> Dict[
 
 
 def main():
-    """Main function to run the football predictions."""
+    """Main function to run the football predictions.
+
+    The ConfigurationManager may return either a single PredictionConfig or a list
+    of PredictionConfig objects (for processing multiple leagues). Normalize to a
+    list and run the engine for each config separately.
+    """
     from backend.utils.config import ConfigurationManager
 
-    # Set up configuration
-    config = ConfigurationManager.setup_configuration()
+    # Set up configuration. ConfigurationManager may return a single PredictionConfig or a list of them
+    configs = ConfigurationManager.setup_configuration()
 
-    # Create and run prediction engine
-    engine = PredictionEngine(config)
-    engine.run_predictions()
+    # Normalize to a list
+    if not isinstance(configs, list):
+        configs = [configs]
 
-    # Print summary
-    summary = engine.get_predictions_summary()
-    logging.info(f"Predictions summary: {summary}")
+    for cfg in configs:
+        logging.info(f"Running predictions for league={cfg.league}, year={cfg.year} rounds={cfg.rounds_to_predict}")
+        engine = PredictionEngine(cfg)
+        engine.run_predictions()
 
-    # Save final aggregated predictions directly from memory (no individual iteration files)
-    engine.save_aggregated_predictions_from_memory()
+        # Print summary
+        summary = engine.get_predictions_summary()
+        logging.info(f"Predictions summary for {cfg.league}: {summary}")
 
-    logging.info("All predictions completed and final aggregated results saved.")
+        # Save final aggregated predictions directly from memory (no individual iteration files)
+        engine.save_aggregated_predictions_from_memory()
+
+        logging.info(f"Completed processing league={cfg.league}")
+
+    logging.info("All configured leagues completed and final aggregated results saved.")

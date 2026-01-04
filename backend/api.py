@@ -281,7 +281,7 @@ if __name__ == '__main__':
     init_api()
 
     # Run the Flask app
-    port = int(os.environ.get('PORT', 5000))
+    port = int(os.environ.get('PORT', 5001))
     debug = os.environ.get('DEBUG', 'True').lower() == 'true'
 
     logger.info(f"Starting Flask API on port {port} (debug={debug})")
