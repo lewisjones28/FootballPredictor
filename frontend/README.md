@@ -1,73 +1,155 @@
-# React + TypeScript + Vite
+# Football Predictor — Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A React + TypeScript frontend (Vite) for viewing football match predictions produced by the backend.
 
-Currently, two official plugins are available:
+This README explains how to run the app in development, configure environment variables, build for production, and troubleshoot common issues.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Table of contents
+- Project overview
+- Tech stack
+- Features
+- Project structure
+- Environment variables
+- Quick start (development)
+- Build & preview (production)
+- Linting & type checking
+- How the frontend consumes the backend API
+- Troubleshooting
+- Deployment notes
+- Contributing
+- License
 
-## React Compiler
+---
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+Project overview
+----------------
+The frontend is a small single-page application built with React + TypeScript and Vite. It reads aggregated prediction data (CSV converted to JSON) from the backend Flask API and displays match predictions by league and round in a dark, easy-to-read UI.
 
-## Expanding the ESLint configuration
+Tech stack
+----------
+- React 18 (TypeScript)
+- Vite — dev server and build tool
+- PapaParse (only used previously; replaced by backend API in this repo)
+- CSS with CSS variables for theming
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Features
+--------
+- Dark "cool" theme designed for comfortable viewing
+- League & Round filters
+- Responsive match prediction cards showing teams, predicted score, match date/time and venue
+- Loading and error states
+- CORS-friendly backend API consumption
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Project structure
+-----------------
+Important files and folders:
+```
+frontend/
+├─ src/
+│  ├─ components/            # React components (PredictionCard, etc.)
+│  ├─ types/                 # TypeScript interfaces
+│  ├─ utils/                 # Data loader and helpers
+│  ├─ App.tsx                # Main application
+│  ├─ main.tsx               # React entry
+│  ├─ index.css              # CSS variables (theme)
+│  └─ App.css                # Component styles
+├─ public/                   # Static assets
+├─ index.html                # App HTML template
+├─ package.json              # Scripts + dependencies
+├─ tsconfig.json             # TypeScript config
+├─ vite.config.ts            # Vite configuration
+└─ .env                      # Environment variables for dev (not committed if added to .gitignore)
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Environment variables
+---------------------
+The frontend reads the following environment variable from Vite's environment configuration. Create a `.env` file in the `frontend/` folder for local development.
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+- `VITE_API_URL` — Base URL for the backend API (including the `/api` path is optional). Default used by the app: `http://localhost:5001/api`.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+Example `.env` file (frontend/.env):
+```env
+# Backend API base URL used by the frontend during development
+VITE_API_URL=http://localhost:5001/api
+```
+
+Quick start (development)
+-------------------------
+Prerequisites:
+- Node.js 18+ (or a compatible LTS release)
+- npm (or a different package manager; commands below use npm)
+
+Install dependencies and start the dev server:
+
+```bash
+cd frontend
+npm install         # install dependencies (first time only)
+npm run dev         # start Vite dev server (HMR)
+```
+
+Open your browser to the address printed by Vite (usually http://localhost:5173).
+
+Notes:
+- The frontend expects the backend API to be running (default: `http://localhost:5001/api`). If the backend is not available, the UI will show an error message and fallback lists may be used for leagues/rounds.
+- The `.env` file is read by Vite at startup. If you change `VITE_API_URL`, restart the dev server to pick up the change.
+
+Build & preview (production)
+----------------------------
+Build the optimized production bundle and preview it locally:
+
+```bash
+cd frontend
+npm run build        # produces a dist/ folder
+npm run preview      # serve the production build locally
+```
+
+The preview server typically serves the built site on http://localhost:4173 (port may vary).
+
+Linting & type checking
+-----------------------
+Run TypeScript checks:
+```bash
+cd frontend
+npx tsc --noEmit
+```
+
+Run linting (if ESLint configured):
+```bash
+npm run lint
+```
+
+How the frontend consumes the backend API
+---------------------------------------
+This frontend is designed to work with the Flask API implemented in `backend/api.py`.
+
+- Base API URL: `VITE_API_URL` (defaults to `http://localhost:5001/api` in this repo).
+- Important endpoints the frontend uses:
+  - `GET /api/leagues` — list available leagues
+  - `GET /api/leagues/:league/years/:year/rounds` — list rounds for a league/year
+  - `GET /api/predictions/:league/:year/:round` — get predictions for a single round
+
+Example API call (curl):
+```bash
+curl "${VITE_API_URL:-http://localhost:5001/api}/predictions/epl/2025/20"
+```
+
+If you run the backend API on a different port, update `VITE_API_URL` in `frontend/.env` and restart the dev server.
+
+```bash
+cd frontend
+rm -rf node_modules package-lock.json
+npm install
+```
+
+Deployment notes
+----------------
+The frontend builds a static bundle (`dist/`) which can be served by any static hosting (Netlify, Vercel, S3 + CloudFront, nginx, etc.).
+
+If the backend API is hosted separately, make sure to set `VITE_API_URL` to the production API endpoint when building the frontend.
+
+Example build & deploy flow:
+```bash
+# build with production API
+VITE_API_URL=https://api.yourdomain.com/api npm run build
+# then upload contents of dist/ to your static host
 ```

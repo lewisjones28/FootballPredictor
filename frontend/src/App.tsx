@@ -81,8 +81,8 @@ function App() {
         <div className="header-logo">
           <img src="/football-predictor.svg" alt="Football Predictor Logo" />
         </div>
-        <h1>Football Predictions</h1>
-        <p>View match predictions and probabilities</p>
+        <h1>AI Football Match Predictor</h1>
+        <p>Powered by thousands of simulations analysing team form, results, and historical data to predict match outcomes</p>
       </header>
 
       <div className="filters">
