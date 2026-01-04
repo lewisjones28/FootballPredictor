@@ -428,7 +428,8 @@ class PredictionEngine:
 
                     if original_row.empty:
                         # If we cannot find original metadata, skip this match (should be rare)
-                        logging.warning(f"Original metadata not found for {home_team} vs {away_team} (round {round_num})")
+                        logging.warning(
+                            f"Original metadata not found for {home_team} vs {away_team} (round {round_num})")
                         continue
 
                     original_row = original_row.iloc[0]
@@ -451,7 +452,8 @@ class PredictionEngine:
                     final_predictions.append(prediction_row)
 
                     # If the original data contains an actual result, mark it to be appended later
-                    if COL_RESULT in original_row and pd.notna(original_row[COL_RESULT]) and original_row[COL_RESULT] != '':
+                    if COL_RESULT in original_row and pd.notna(original_row[COL_RESULT]) and original_row[
+                        COL_RESULT] != '':
                         appended_actual_keys.add((home_team, away_team))
 
                 # Next, include ALL actual results present in the original data for this round
@@ -462,7 +464,8 @@ class PredictionEngine:
                     round_original_rows = pd.DataFrame()
 
                 if not round_original_rows.empty:
-                    actual_rows = round_original_rows[round_original_rows[COL_RESULT].notna() & (round_original_rows[COL_RESULT] != '')]
+                    actual_rows = round_original_rows[
+                        round_original_rows[COL_RESULT].notna() & (round_original_rows[COL_RESULT] != '')]
 
                     for _, orig in actual_rows.iterrows():
                         home = orig[COL_HOME_TEAM]
@@ -494,7 +497,8 @@ class PredictionEngine:
                 logging.info(f"  Saving to {FINAL_PREDICTIONS_FILE}...")
                 final_df = pd.DataFrame(final_predictions)
                 # Sort so that predicted rows appear before actual rows for the same match
-                final_df = final_df.sort_values([COL_MATCH_NUMBER, COL_PREDICTED], ascending=[True, False]).reset_index(drop=True)
+                final_df = final_df.sort_values([COL_MATCH_NUMBER, COL_PREDICTED], ascending=[True, False]).reset_index(
+                    drop=True)
                 final_df.to_csv(f"{output_dir}/{FINAL_PREDICTIONS_FILE}", index=False)
 
                 round_time = time.time() - round_start
@@ -583,21 +587,33 @@ def _process_iteration_chunk(iteration_range: tuple, worker_data: dict) -> Dict[
 
 
 def main():
-    """Main function to run the football predictions."""
+    """Main function to run the football predictions.
+
+    The ConfigurationManager may return either a single PredictionConfig or a list
+    of PredictionConfig objects (for processing multiple leagues). Normalize to a
+    list and run the engine for each config separately.
+    """
     from backend.utils.config import ConfigurationManager
 
-    # Set up configuration
-    config = ConfigurationManager.setup_configuration()
+    # Set up configuration. ConfigurationManager may return a single PredictionConfig or a list of them
+    configs = ConfigurationManager.setup_configuration()
 
-    # Create and run prediction engine
-    engine = PredictionEngine(config)
-    engine.run_predictions()
+    # Normalize to a list
+    if not isinstance(configs, list):
+        configs = [configs]
 
-    # Print summary
-    summary = engine.get_predictions_summary()
-    logging.info(f"Predictions summary: {summary}")
+    for cfg in configs:
+        logging.info(f"Running predictions for league={cfg.league}, year={cfg.year} rounds={cfg.rounds_to_predict}")
+        engine = PredictionEngine(cfg)
+        engine.run_predictions()
 
-    # Save final aggregated predictions directly from memory (no individual iteration files)
-    engine.save_aggregated_predictions_from_memory()
+        # Print summary
+        summary = engine.get_predictions_summary()
+        logging.info(f"Predictions summary for {cfg.league}: {summary}")
 
-    logging.info("All predictions completed and final aggregated results saved.")
+        # Save final aggregated predictions directly from memory (no individual iteration files)
+        engine.save_aggregated_predictions_from_memory()
+
+        logging.info(f"Completed processing league={cfg.league}")
+
+    logging.info("All configured leagues completed and final aggregated results saved.")
