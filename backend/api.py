@@ -5,8 +5,8 @@ This API loads prediction CSV files from the output directory and serves them
 via REST endpoints for the frontend to consume.
 """
 
-import os
 import logging
+import os
 from pathlib import Path
 from typing import Dict, List, Optional
 
@@ -101,7 +101,7 @@ class PredictionLoader:
             List of prediction dictionaries or None if not found
         """
         predictions_file = (
-            self.base_output_dir / league / year / str(round_num) / FINAL_PREDICTIONS_FILE
+                self.base_output_dir / league / year / str(round_num) / FINAL_PREDICTIONS_FILE
         )
 
         if not predictions_file.exists():
@@ -286,4 +286,3 @@ if __name__ == '__main__':
 
     logger.info(f"Starting Flask API on port {port} (debug={debug})")
     app.run(host='0.0.0.0', port=port, debug=debug)
-

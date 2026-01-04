@@ -428,7 +428,8 @@ class PredictionEngine:
 
                     if original_row.empty:
                         # If we cannot find original metadata, skip this match (should be rare)
-                        logging.warning(f"Original metadata not found for {home_team} vs {away_team} (round {round_num})")
+                        logging.warning(
+                            f"Original metadata not found for {home_team} vs {away_team} (round {round_num})")
                         continue
 
                     original_row = original_row.iloc[0]
@@ -451,7 +452,8 @@ class PredictionEngine:
                     final_predictions.append(prediction_row)
 
                     # If the original data contains an actual result, mark it to be appended later
-                    if COL_RESULT in original_row and pd.notna(original_row[COL_RESULT]) and original_row[COL_RESULT] != '':
+                    if COL_RESULT in original_row and pd.notna(original_row[COL_RESULT]) and original_row[
+                        COL_RESULT] != '':
                         appended_actual_keys.add((home_team, away_team))
 
                 # Next, include ALL actual results present in the original data for this round
@@ -462,7 +464,8 @@ class PredictionEngine:
                     round_original_rows = pd.DataFrame()
 
                 if not round_original_rows.empty:
-                    actual_rows = round_original_rows[round_original_rows[COL_RESULT].notna() & (round_original_rows[COL_RESULT] != '')]
+                    actual_rows = round_original_rows[
+                        round_original_rows[COL_RESULT].notna() & (round_original_rows[COL_RESULT] != '')]
 
                     for _, orig in actual_rows.iterrows():
                         home = orig[COL_HOME_TEAM]
@@ -494,7 +497,8 @@ class PredictionEngine:
                 logging.info(f"  Saving to {FINAL_PREDICTIONS_FILE}...")
                 final_df = pd.DataFrame(final_predictions)
                 # Sort so that predicted rows appear before actual rows for the same match
-                final_df = final_df.sort_values([COL_MATCH_NUMBER, COL_PREDICTED], ascending=[True, False]).reset_index(drop=True)
+                final_df = final_df.sort_values([COL_MATCH_NUMBER, COL_PREDICTED], ascending=[True, False]).reset_index(
+                    drop=True)
                 final_df.to_csv(f"{output_dir}/{FINAL_PREDICTIONS_FILE}", index=False)
 
                 round_time = time.time() - round_start
