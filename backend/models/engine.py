@@ -412,6 +412,10 @@ class PredictionEngine:
                 logging.info(f"  Aggregating results (finding most common predictions)...")
                 final_predictions = []
 
+                # Keep track of actual rows we've already appended to avoid duplicates
+                appended_actual_keys = set()
+
+                # First, build aggregated predicted results (if any predictions exist)
                 for match_key, match_data in match_predictions.items():
                     home_team, away_team, round_num = match_key
 
@@ -420,14 +424,21 @@ class PredictionEngine:
                         (original_data[COL_ROUND_NUMBER] == round_num) &
                         (original_data[COL_HOME_TEAM] == home_team) &
                         (original_data[COL_AWAY_TEAM] == away_team)
-                        ].iloc[0]
+                        ]
 
-                    # Find most common result
+                    if original_row.empty:
+                        # If we cannot find original metadata, skip this match (should be rare)
+                        logging.warning(f"Original metadata not found for {home_team} vs {away_team} (round {round_num})")
+                        continue
+
+                    original_row = original_row.iloc[0]
+
+                    # Find most common result from iterations
                     result_counts = Counter(match_data['results'])
                     most_common_result = result_counts.most_common(1)[0][0]
 
-                    # Create final prediction row
-                    final_row = {
+                    # Create final prediction row (Predicted = True)
+                    prediction_row = {
                         COL_MATCH_NUMBER: match_data['match_info']['match_number'],
                         COL_ROUND_NUMBER: round_num,
                         COL_DATE: original_row[COL_DATE] if COL_DATE in original_row else '',
@@ -437,12 +448,53 @@ class PredictionEngine:
                         COL_RESULT: most_common_result,
                         COL_PREDICTED: True
                     }
-                    final_predictions.append(final_row)
+                    final_predictions.append(prediction_row)
+
+                    # If the original data contains an actual result, mark it to be appended later
+                    if COL_RESULT in original_row and pd.notna(original_row[COL_RESULT]) and original_row[COL_RESULT] != '':
+                        appended_actual_keys.add((home_team, away_team))
+
+                # Next, include ALL actual results present in the original data for this round
+                # This covers matches that may not have been predicted (no predictions in memory)
+                try:
+                    round_original_rows = original_data[original_data[COL_ROUND_NUMBER] == round_number]
+                except Exception:
+                    round_original_rows = pd.DataFrame()
+
+                if not round_original_rows.empty:
+                    actual_rows = round_original_rows[round_original_rows[COL_RESULT].notna() & (round_original_rows[COL_RESULT] != '')]
+
+                    for _, orig in actual_rows.iterrows():
+                        home = orig[COL_HOME_TEAM]
+                        away = orig[COL_AWAY_TEAM]
+                        match_num = orig[COL_MATCH_NUMBER] if COL_MATCH_NUMBER in orig else None
+
+                        key = (home, away)
+
+                        # If we already appended an actual row for this match, skip to avoid duplicates
+                        if key in appended_actual_keys:
+                            # But ensure we still append the actual row even if we appended the key above
+                            # only append once: since appended_actual_keys was used as marker, avoid double-appending
+                            continue
+
+                        actual_row = {
+                            COL_MATCH_NUMBER: match_num,
+                            COL_ROUND_NUMBER: round_number,
+                            COL_DATE: orig[COL_DATE] if COL_DATE in orig else '',
+                            COL_LOCATION: orig[COL_LOCATION] if COL_LOCATION in orig else '',
+                            COL_HOME_TEAM: home,
+                            COL_AWAY_TEAM: away,
+                            COL_RESULT: orig[COL_RESULT],
+                            COL_PREDICTED: False
+                        }
+                        final_predictions.append(actual_row)
+                        appended_actual_keys.add(key)
 
                 # Save final aggregated predictions
                 logging.info(f"  Saving to {FINAL_PREDICTIONS_FILE}...")
                 final_df = pd.DataFrame(final_predictions)
-                final_df = final_df.sort_values(COL_MATCH_NUMBER).reset_index(drop=True)
+                # Sort so that predicted rows appear before actual rows for the same match
+                final_df = final_df.sort_values([COL_MATCH_NUMBER, COL_PREDICTED], ascending=[True, False]).reset_index(drop=True)
                 final_df.to_csv(f"{output_dir}/{FINAL_PREDICTIONS_FILE}", index=False)
 
                 round_time = time.time() - round_start
